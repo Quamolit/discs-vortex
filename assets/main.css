@@ -1,0 +1,7 @@
+body {
+  margin: 0;
+  overscroll-behavior-y: none;
+  overscroll-behavior-x: none;
+
+  font-size: 0;
+}

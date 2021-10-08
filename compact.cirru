@@ -77,6 +77,7 @@
               reset! *render-loop $ js/setTimeout
                 fn () $ reset! *raq-loop (js/requestAnimationFrame render-loop!)
                 , 20
+              ; reset! *raq-loop $ js/requestAnimationFrame render-loop!
         |*raq-loop $ quote (defatom *raq-loop nil)
         |reload! $ quote
           defn reload! () $ if (nil? build-errors)
