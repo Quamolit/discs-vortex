@@ -4,4 +4,10 @@ body {
   overscroll-behavior-x: none;
 
   font-size: 0;
+
+  background-color: black;
+}
+
+html {
+  background-color: black;
 }
