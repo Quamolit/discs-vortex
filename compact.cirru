@@ -8,7 +8,7 @@
       :ns $ quote
         ns app.comp.container $ :require
           quamolit.util.string :refer $ hsl
-          quamolit.alias :refer $ defcomp group >> line arc
+          quamolit.alias :refer $ defcomp group >> line arc rect
           quamolit.render.element :refer $ translate button
           "\"@calcit/std" :refer $ rand
           app.config :refer $ conf
@@ -34,6 +34,7 @@
                       fn (x)
                         + x $ * elapsed 10
                 group ({})
+                  rect $ {} (:w js/window.innerWidth) (:h js/window.innerHeight) (:x 0) (:y 0) (:fill-style "\"black")
                   group ({}) & $ -> (:trails state)
                     map $ fn (trail)
                       group ({}) & $ -> trail
