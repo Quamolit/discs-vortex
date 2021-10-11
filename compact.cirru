@@ -8,20 +8,88 @@
       :ns $ quote
         ns app.comp.container $ :require
           quamolit.util.string :refer $ hsl
-          quamolit.alias :refer $ defcomp group >> line
+          quamolit.alias :refer $ defcomp group >> line arc rect
           quamolit.render.element :refer $ translate button
+          "\"@calcit/std" :refer $ rand
+          app.config :refer $ conf
+          quamolit.hud-logs :refer $ hud-log
       :defs $ {}
         |comp-container $ quote
           defcomp comp-container (store)
             let
                 states $ :states store
                 state $ either (:data states)
-                  {} $ :tab :portal
+                  {}
+                    :trails $ []
+                    :rot 0
                 cursor $ []
-                tab $ :tab state
-              group ({})
-                line $ {} (:x0 0) (:y0 0) (:x1 40) (:y1 40)
-                  :stroke-style $ hsl 0 0 80
+                speed $ :speed conf
+                rot0 $ :rot state
+              []
+                fn (elapsed d!)
+                  if
+                    empty? $ :trails state
+                    d! cursor $ assoc state :trails (gen-trails 2 40)
+                    d! cursor $ update state :rot
+                      fn (x)
+                        + x $ * elapsed 10
+                group ({})
+                  rect $ {} (:w js/window.innerWidth) (:h js/window.innerHeight) (:x 0) (:y 0) (:fill-style "\"black")
+                  group ({}) & $ -> (:trails state)
+                    map $ fn (trail)
+                      group ({}) & $ -> trail
+                        map $ fn (seg)
+                          let
+                              rot $ * speed
+                                / rot0 $ :r seg
+                            arc $ {} (:x 0) (:y 0)
+                              :s-angle $ +
+                                * 360 $ :from seg
+                                , rot
+                              :e-angle $ +
+                                * 360 $ :to seg
+                                , rot
+                              :line-width 4
+                              :r $ * 12 (:r seg)
+                              :line-cap :round
+                              :stroke-style $ :color seg
+                  group ({})
+                    button $ {} (:x -200) (:y -100) (:width 80) (:height 40) (:text "\"Gen")
+                      :text-color $ hsl 0 0 100 0.4
+                      :surface-color $ hsl 0 0 40 0.5
+                      :event $ {}
+                        :click $ fn (e d!)
+                          d! cursor $ assoc state :trails (gen-trails 2 36)
+                    , el-fullscreen
+        |el-fullscreen $ quote
+          def el-fullscreen $ button
+            {} (:x -200) (:y 0) (:width 80) (:height 40) (:text "\"Full")
+              :text-color $ hsl 0 0 100 0.4
+              :surface-color $ hsl 0 0 40 0.5
+              :event $ {}
+                :click $ fn (e d!) (js/document.body.requestFullscreen)
+        |gen-chain $ quote
+          defn gen-chain (acc base r)
+            let
+                step $ rand
+                  / (:seed conf) r
+              if
+                or
+                  > (+ step base) 1
+                  and (> base 0.7)
+                    > (rand 1) 0.4
+                , acc $ recur
+                  conj acc $ %{} Segment (:r r) (:from base)
+                    :to $ + base step
+                    :color $ hsl (rand 360) (rand 100) (rand 100)
+                  + base step $ / (:gap-limit conf) r
+                  , r
+        |gen-trails $ quote
+          defn gen-trails (from to)
+            -> (range from to)
+              map $ fn (r)
+                gen-chain ([]) 0 r
+        |Segment $ quote (defrecord Segment :r :from :to :color)
     |app.schema $ {}
       :ns $ quote (ns app.schema)
       :defs $ {}
@@ -74,12 +142,17 @@
                 target $ js/document.querySelector |#app
               ; js/console.log "\"store" @*store
               render-page (comp-container @*store) target dispatch!
-              reset! *render-loop $ js/setTimeout
+              ; reset! *render-loop $ js/setTimeout
                 fn () $ reset! *raq-loop (js/requestAnimationFrame render-loop!)
-                , 20
-              ; reset! *raq-loop $ js/requestAnimationFrame render-loop!
+                , 10
+              reset! *raq-loop $ js/requestAnimationFrame render-loop!
         |*raq-loop $ quote (defatom *raq-loop nil)
         |reload! $ quote
           defn reload! () $ if (nil? build-errors)
             do (js/clearTimeout @*render-loop) (js/cancelAnimationFrame @*raq-loop) (render-loop!) (hud! "\"ok~" "\"Ok")
             hud! "\"error" build-errors
+    |app.config $ {}
+      :ns $ quote (ns app.config)
+      :defs $ {}
+        |conf $ quote
+          def conf $ {} (:gap-limit 0.2) (:seed 3) (:speed 40)
