@@ -1,19 +1,12 @@
 
 {} (:package |app)
-  :configs $ {} (:init-fn |app.main/main!) (:reload-fn |app.main/reload!)
-    :modules $ [] |quamolit.calcit/ |pointed-prompt/
-    :version |0.0.1
+  :configs $ {} (:init-fn |app.main/main!) (:reload-fn |app.main/reload!) (:version |0.0.1)
+    :modules $ [] |quamolit/ |pointed-prompt/
+  :entries $ {}
   :files $ {}
     |app.comp.container $ {}
-      :ns $ quote
-        ns app.comp.container $ :require
-          quamolit.util.string :refer $ hsl
-          quamolit.alias :refer $ defcomp group >> line arc rect
-          quamolit.render.element :refer $ translate button
-          "\"@calcit/std" :refer $ rand
-          app.config :refer $ conf
-          quamolit.hud-logs :refer $ hud-log
       :defs $ {}
+        |Segment $ quote (defrecord Segment :r :from :to :color)
         |comp-container $ quote
           defcomp comp-container (store)
             let
@@ -89,40 +82,23 @@
             -> (range from to)
               map $ fn (r)
                 gen-chain ([]) 0 r
-        |Segment $ quote (defrecord Segment :r :from :to :color)
-    |app.schema $ {}
-      :ns $ quote (ns app.schema)
-      :defs $ {}
-        |task $ quote
-          def task $ {} (:text |) (:id nil) (:done? false)
-    |app.updater $ {}
       :ns $ quote
-        ns app.updater $ :require (app.schema :as schema)
-          quamolit.cursor :refer $ update-states gc-states
+        ns app.comp.container $ :require
+          quamolit.util.string :refer $ hsl
+          quamolit.alias :refer $ defcomp group >> line arc rect
+          quamolit.render.element :refer $ translate button
+          "\"@calcit/std" :refer $ rand
+          app.config :refer $ conf
+          quamolit.hud-logs :refer $ hud-log
+    |app.config $ {}
       :defs $ {}
-        |updater $ quote
-          defn updater (store op op-data tick) (; js/console.log "|store update:" op op-data tick)
-            case-default op
-              do (js/console.log "\"unknown op" op) store
-              :states $ update-states store op-data
-              :gc-states $ gc-states store op-data
+        |conf $ quote
+          def conf $ {} (:gap-limit 0.2) (:seed 3) (:speed 40)
+      :ns $ quote (ns app.config)
     |app.main $ {}
-      :ns $ quote
-        ns app.main $ :require
-          app.comp.container :refer $ comp-container
-          quamolit.core :refer $ render-page configure-canvas setup-events
-          quamolit.util.time :refer $ get-tick
-          app.updater :refer $ updater
-          "\"./calcit.build-errors" :default build-errors
-          "\"bottom-tip" :default hud!
       :defs $ {}
-        |main! $ quote
-          defn main! () (load-console-formatter!)
-            let
-                target $ js/document.querySelector |#app
-              configure-canvas target
-              setup-events target dispatch!
-              render-loop!
+        |*raq-loop $ quote (defatom *raq-loop nil)
+        |*render-loop $ quote (defatom *render-loop nil)
         |*store $ quote
           defatom *store $ {}
             :states $ {}
@@ -135,7 +111,17 @@
                     new-tick $ get-tick
                     new-store $ updater @*store op op-data new-tick
                   reset! *store new-store
-        |*render-loop $ quote (defatom *render-loop nil)
+        |main! $ quote
+          defn main! () (load-console-formatter!)
+            let
+                target $ js/document.querySelector |#app
+              configure-canvas target
+              setup-events target dispatch!
+              render-loop!
+        |reload! $ quote
+          defn reload! () $ if (nil? build-errors)
+            do (js/clearTimeout @*render-loop) (js/cancelAnimationFrame @*raq-loop) (render-loop!) (hud! "\"ok~" "\"Ok")
+            hud! "\"error" build-errors
         |render-loop! $ quote
           defn render-loop! (? t)
             let
@@ -146,13 +132,27 @@
                 fn () $ reset! *raq-loop (js/requestAnimationFrame render-loop!)
                 , 10
               reset! *raq-loop $ js/requestAnimationFrame render-loop!
-        |*raq-loop $ quote (defatom *raq-loop nil)
-        |reload! $ quote
-          defn reload! () $ if (nil? build-errors)
-            do (js/clearTimeout @*render-loop) (js/cancelAnimationFrame @*raq-loop) (render-loop!) (hud! "\"ok~" "\"Ok")
-            hud! "\"error" build-errors
-    |app.config $ {}
-      :ns $ quote (ns app.config)
+      :ns $ quote
+        ns app.main $ :require
+          app.comp.container :refer $ comp-container
+          quamolit.core :refer $ render-page configure-canvas setup-events
+          quamolit.util.time :refer $ get-tick
+          app.updater :refer $ updater
+          "\"./calcit.build-errors" :default build-errors
+          "\"bottom-tip" :default hud!
+    |app.schema $ {}
       :defs $ {}
-        |conf $ quote
-          def conf $ {} (:gap-limit 0.2) (:seed 3) (:speed 40)
+        |task $ quote
+          def task $ {} (:text |) (:id nil) (:done? false)
+      :ns $ quote (ns app.schema)
+    |app.updater $ {}
+      :defs $ {}
+        |updater $ quote
+          defn updater (store op op-data tick) (; js/console.log "|store update:" op op-data tick)
+            case-default op
+              do (js/console.log "\"unknown op" op) store
+              :states $ update-states store op-data
+              :gc-states $ gc-states store op-data
+      :ns $ quote
+        ns app.updater $ :require (app.schema :as schema)
+          quamolit.cursor :refer $ update-states gc-states
